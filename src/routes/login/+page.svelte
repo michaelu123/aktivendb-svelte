@@ -69,13 +69,18 @@
 		<div class="card card-body">
 			<h1>Login</h1>
 			<form on:submit|preventDefault>
-				<label for="email" class="my-5">
-					<span>Email</span>
-					<input type="email" id="email" bind:value={email} />
+				<label for="email" class="grid items-center grid-cols-6 my-5">
+					<span>Email:</span>
+					<input class="col-span-4 form-input" type="email" id="email" bind:value={email} />
 				</label>
-				<label for="password">
-					<span>Passwort</span>
-					<input type="password" id="password" bind:value={password} />
+				<label for="password" class="grid items-center grid-cols-6 my-5">
+					<span>Passwort:</span>
+					<input
+						class="col-span-4 form-input"
+						type="password"
+						id="password"
+						bind:value={password}
+					/>
 				</label>
 				{#if error}
 					<p class="mt-8 bg-red-200">{error}</p>

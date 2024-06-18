@@ -79,8 +79,8 @@
 			<input
 				bind:value={$dataTableModel.search}
 				type="search"
-				placeholder="Search Table..."
-				class="p-2"
+				placeholder="Suchen..."
+				class="p-2 bg-primary-300"
 			/>
 		</div>
 		<!-- Table -->
@@ -88,11 +88,11 @@
 			<div class="table-container">
 				<!-- prettier-ignore -->
 				<table class="table table-hover" role="grid" use:tableInteraction use:tableA11y>
-						<thead on:click={(e) => { dataTableSort(e, dataTableModel) }} on:keypress>
+						<thead>
 							<tr>
-								<th data-sort="name">Name</th>
-								<th data-sort="email">Email</th>
-								<th data-sort="needs_first_aid_training">EHK</th>
+								<th  on:click={(e) => { dataTableSort(e, dataTableModel) }} on:keypress data-sort="name">Name</th>
+								<th  on:click={(e) => { dataTableSort(e, dataTableModel) }} on:keypress data-sort="email">Email</th>
+								<th  on:click={(e) => { dataTableSort(e, dataTableModel) }} on:keypress data-sort="needs_first_aid_training">EHK</th>
 								<!-- <th>Logging</th> -->
 							</tr>
 						</thead>

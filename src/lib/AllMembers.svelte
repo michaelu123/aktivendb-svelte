@@ -93,15 +93,14 @@
 			<input
 				bind:value={$dataTableModel.search}
 				type="search"
-				placeholder="Search Table..."
-				class="p-2"
+				placeholder="Suchen..."
+				class="p-2 bg-primary-300"
 			/>
 		</div>
 		<!-- Table -->
 		<div class="card-body">
 			<div class="table-container">
 				<!-- prettier-ignore -->
-				<p>fillen {$dataTableModel.filtered.length}</p>
 				<table class="table table-hover" role="grid" use:tableInteraction use:tableA11y>
 					<thead>
 						<tr>

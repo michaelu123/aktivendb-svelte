@@ -11,6 +11,14 @@ function getCreds() {
 	return creds;
 }
 
+function relogin(resp) {
+	// we get no clear indication from the backend that the token has expired...
+	if (resp.status >= 400) {
+		credsStore.set(null);
+		throw redirect(307, '/login');
+	}
+}
+
 export let memberNames = {};
 export let teamNames = {
 	// deleted records not fetched from API call
@@ -38,6 +46,7 @@ export async function loadAll(fetch) {
 		method: 'GET',
 		headers: creds.hdrs
 	});
+	relogin(respM);
 	const members = await respM.json();
 	for (let member of members) {
 		for (let key of Object.keys(member)) {
@@ -53,6 +62,7 @@ export async function loadAll(fetch) {
 		method: 'GET',
 		headers: creds.hdrs
 	});
+	relogin(respT);
 	const teams = await respT.json();
 	for (let team of teams) {
 		for (let key of Object.keys(team)) {
@@ -79,6 +89,7 @@ export async function loadMember(fetch, id) {
 		method: 'GET',
 		headers: creds.hdrs
 	});
+	relogin(resp);
 	const member = await resp.json();
 	for (let key of Object.keys(member)) {
 		if (member[key] == null || member[key] == 'undef@undef.de') {
@@ -97,6 +108,7 @@ export async function loadTeam(fetch, id) {
 		method: 'GET',
 		headers: creds.hdrs
 	});
+	relogin(resp);
 	const team = await resp.json();
 	for (let key of Object.keys(team)) {
 		if (team[key] == null || team[key] == 'undef@undef.de') {
@@ -131,6 +143,7 @@ export async function storeMember(method, member) {
 		headers: creds.hdrs,
 		body: JSON.stringify(m)
 	});
+	relogin(resp);
 	const res = await resp.json();
 	return res.id;
 }
@@ -140,10 +153,11 @@ export async function deleteMember(id) {
 	const baseUrl = creds.url;
 
 	let url = baseUrl + '/api/member/' + id + '?token=' + creds.token;
-	await fetch(url, {
+	const resp = await fetch(url, {
 		method: 'DELETE',
 		headers: creds.hdrs
 	});
+	relogin(resp);
 }
 
 const omitTeamFields = ['id', 'updated_at', 'with_details', 'with_detals'];
@@ -170,6 +184,7 @@ export async function storeTeam(method, team) {
 		headers: creds.hdrs,
 		body: JSON.stringify(t)
 	});
+	relogin(resp);
 	const res = await resp.json();
 	return res.id;
 }
@@ -179,10 +194,11 @@ export async function deleteTeam(id) {
 	const baseUrl = creds.url;
 
 	let url = baseUrl + '/api/project-team/' + id + '?token=' + creds.token;
-	await fetch(url, {
+	const resp = await fetch(url, {
 		method: 'DELETE',
 		headers: creds.hdrs
 	});
+	relogin(resp);
 }
 
 export async function storeRelation(method, relation) {
@@ -210,6 +226,7 @@ export async function storeRelation(method, relation) {
 		headers: creds.hdrs,
 		body: JSON.stringify(r)
 	});
+	relogin(resp);
 	const res = await resp.json();
 	return res.id;
 }
@@ -219,10 +236,11 @@ export async function deleteRelation(id) {
 	const baseUrl = creds.url;
 
 	let url = baseUrl + '/api/project-team-member/' + id + '?token=' + creds.token;
-	await fetch(url, {
+	const resp = await fetch(url, {
 		method: 'DELETE',
 		headers: creds.hdrs
 	});
+	relogin(resp);
 }
 
 function parse(data) {
@@ -274,6 +292,7 @@ export async function loadHistory(fetch, table, id) {
 		method: 'GET',
 		headers: creds.hdrs
 	});
+	relogin(resp);
 	let histArr = await resp.json();
 	for (let i in histArr) {
 		histArr[i] = parse(histArr[i]);
@@ -294,7 +313,7 @@ export async function getUserFromApi(fetch, id) {
 		method: 'GET',
 		headers: creds.hdrs
 	});
-
+	relogin(resp);
 	user = await resp.json();
 	users[id] = user;
 	return user;
