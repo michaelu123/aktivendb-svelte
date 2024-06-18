@@ -72,7 +72,7 @@
 <div class="px-6 py-8">
 	<section class="card !bg-accent-500/5">
 		<!-- Search Input -->
-		<div class="flex card-header">
+		<div class="flex m-5 card-header">
 			{#if !is_admin}
 				<SlideToggle bind:checked={$dataTableModel.withDetails}>Nur meine Teams</SlideToggle>
 			{/if}

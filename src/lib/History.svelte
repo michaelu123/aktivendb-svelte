@@ -1,10 +1,13 @@
 <script>
+	import { onDestroy } from 'svelte';
 	import { credsStore, membersState, teamsState } from '$lib/stores.js';
 	import { getUserFromApi } from '$lib/load.js';
 	import { onMount } from 'svelte';
+	import { Paginator, SlideToggle } from '@skeletonlabs/skeleton';
+	import { writable } from 'svelte/store';
+	import { dataTableHandler, tableInteraction, tableA11y } from '$lib/DataTable/DataTable';
 
 	export let data;
-	let memberChanges = 0;
 	let memberNames = $membersState.memberNames;
 	let teamNames = $teamsState.teamNames;
 	let table = data.table;
@@ -14,14 +17,27 @@
 	let ende = data.ende;
 	let fetch = data.fetch;
 	let lineNo = 0;
-	let historyTxt = []; // historyTxt.push does not trigger reactivity
-	let historyTxt2 = []; // historyTxt2 = historyTxt does!
+	let historyTxt = [];
 	let historyArray = [];
+	let page = 0;
+	let limit = 10;
+	const dataTableModel = writable({
+		source: historyArray,
+		filtered: historyArray,
+		filter: dataFilter,
+		pagination: { page, limit, size: 0, amounts: [10, 20, 50, 100, 500] }
+	});
+	const unsubscribe = dataTableModel.subscribe((v) => dataTableHandler(v));
+	onDestroy(unsubscribe);
 
 	onMount(() => history());
 
 	function back() {
 		window.history.back();
+	}
+
+	function dataFilter(store) {
+		return store.source;
 	}
 
 	async function history() {
@@ -31,7 +47,9 @@
 			explainHistory(event, email);
 			lineNo++;
 		}
-		historyTxt2 = historyTxt;
+		historyTxt = historyTxt;
+		$dataTableModel.source = historyArray;
+		$dataTableModel.filtered = historyArray;
 	}
 
 	function explainHistory(event, email) {
@@ -52,6 +70,7 @@
 		let msg = email;
 		historyObj['who'] = email.replace('@adfc-muenchen.de', '');
 		historyObj['key'] = lineNo;
+		historyObj['bgcolor'] = 'bg-primary-300';
 		let name = member.record_new['name'];
 		if (name == null) name = '';
 		name = name.trim();
@@ -117,6 +136,7 @@
 		historyObj['whom'] = memberName2;
 		historyObj['where'] = teamName2;
 		historyObj['key'] = lineNo;
+		historyObj['bgcolor'] = 'bg-primary-300';
 		if (Array.isArray(tm.record_old)) {
 			msg = tm.record_new.created_at + ' ' + msg;
 			msg +=
@@ -170,6 +190,7 @@
 		historyObj['who'] = email;
 		historyObj['whom'] = teamName;
 		historyObj['key'] = lineNo;
+		historyObj['bgcolor'] = 'bg-primary-300';
 		if (Array.isArray(team.record_old)) {
 			msg = team.record_new.created_at + ' ' + msg;
 			msg += ' adds ' + teamName;
@@ -217,28 +238,118 @@
 		if (!mn) mn = 'MemberId ' + id;
 		return mn;
 	}
+
+	let alsWas = 'Als Text';
+	function chgFormat() {
+		alsWas = alsWas == 'Als Text' ? 'Als Tabelle' : 'Als Text';
+	}
+
+	function expandRow(e, row) {
+		console.log('row', row, 'e', e);
+		row.expand = !row.expand;
+		row.bgcolor = row.expand ? 'bg-red-300' : 'bg-primary-300';
+		$dataTableModel.source = historyArray; // redraw
+	}
 </script>
 
 {#if $credsStore && $credsStore.is_admin}
-	{#if beginn}
-		<h2 class="text-center p-2">Änderungsgeschichte {beginn} bis {ende}</h2>
-	{:else if table == 'members'}
-		<h2 class="text-center p-2">Änderungsgeschichte {memberName(id)}</h2>
-	{:else}
-		<h2 class="text-center p-2">Änderungsgeschichte {teamName(id)}</h2>
-	{/if}
-	<div class="card p-1">
-		{#each historyTxt2 as line}
-			{#if line.indent == 0}
-				<p class="mb-0">{line.msg}</p>
-			{:else}
-				<p class="mb-0 ml-10">{line.msg}</p>
-			{/if}
-		{/each}
+	<div class="flex justify-between mt-2">
+		{#if beginn}
+			<h2 class="p-2 text-center">Änderungsgeschichte {beginn} bis {ende}</h2>
+		{:else if table == 'members'}
+			<h2 class="p-2 text-center">Änderungsgeschichte {memberName(id)}</h2>
+		{:else}
+			<h2 class="p-2 text-center bg-t">Änderungsgeschichte {teamName(id)}</h2>
+		{/if}
+		<button class="btn bg-primary-300" on:click={chgFormat}
+			>{alsWas == 'Als Text' ? 'Als Tabelle' : 'Als Text'}</button
+		>
 	</div>
-	<div class="card p-1">
+	<div class="px-6 py-8">
+		<section class="card !bg-accent-500/5">
+			<div class="card-body">
+				{#if alsWas == 'Als Text'}
+					{#each historyTxt as line}
+						{#if line.indent == 0}
+							<p class="mb-0">{line.msg}</p>
+						{:else}
+							<p class="mb-0 ml-10">{line.msg}</p>
+						{/if}
+					{/each}
+				{:else}
+					<!-- Table -->
+					<div class="table-container">
+						<!-- prettier-ignore -->
+						<table class="table table-hover" role="grid" use:tableInteraction use:tableA11y>
+					<thead>
+						<tr>
+							<th>Wann</th>
+							<th>Wer/Wert</th>
+							<th>Was/Alt</th>
+							<th>Mitglied/Neu</th>
+							<th>Gliederung</th>
+							<th>Änderungen</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each $dataTableModel.filtered as row, rowIndex}
+							<tr
+								aria-rowindex={rowIndex + 1}
+							>
+								<td role="gridcell" aria-colindex={3} tabindex="0">
+									{row.when}
+								</td>
+								<td role="gridcell" aria-colindex={4} tabindex="0">
+									{row.who}
+								</td>
+								<td role="gridcell" aria-colindex={5} tabindex="0">
+									{row.what}
+								</td>
+								<td role="gridcell" aria-colindex={6} tabindex="0">
+									{row.whom || ""}
+								</td>
+								<td role="gridcell" aria-colindex={7} tabindex="0">
+									{row.where || ""}
+								</td>
+								<td role="gridcell" aria-colindex={8} tabindex="0">
+									{#if row.changes}
+										<button class="btn {row.bgcolor}"  on:click={(e)=>expandRow(e,row)}>{row.changes.length}</button>
+									{/if}
+								</td>
+							</tr>
+							{#if row.expand}
+								{#each row.changes as chg}
+									<tr
+										aria-rowindex={rowIndex + 1}
+									>
+										<td role="gridcell" aria-colindex={3} tabindex="0">
+										</td>
+										<td role="gridcell" aria-colindex={3} tabindex="0">
+											{chg.propName}
+										</td>
+										<td role="gridcell" aria-colindex={4} tabindex="0">
+											{chg.propOld || ""}
+										</td>
+										<td role="gridcell" aria-colindex={5} tabindex="0">
+											{chg.propNew || ""}
+										</td>
+									</tr>
+								{/each}
+							{/if}
+						{/each}
+					</tbody>
+				</table>
+					</div>
+					<div class="card-footer">
+						<Paginator bind:settings={$dataTableModel.pagination} />
+					</div>
+				{/if}
+			</div>
+		</section>
+	</div>
+	<div class="p-1 card">
 		<div class="flex my-10">
-			<button class="btn bg-primary-300 mr-8" on:click={back}>Zurück</button>
+			<button class="mr-8 btn bg-primary-300" on:click={back}>Zurück</button>
 		</div>
 	</div>
 {:else}

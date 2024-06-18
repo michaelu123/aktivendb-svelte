@@ -277,7 +277,6 @@ export async function loadHistoryRange(fetch, beginn, ende) {
 		if (updated >= beginn && updated <= ende) {
 			let event = parse(histRow);
 			res.push(event);
-			if (res.length >= 10) break;
 		}
 	}
 	return res;
